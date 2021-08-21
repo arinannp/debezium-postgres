@@ -1,0 +1,5 @@
+apache-airflow==1.10.9
+pip==21.2.4
+Faker==8.8.1
+kafka-python==2.0.2
+pymongo==3.11.4

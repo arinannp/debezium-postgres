@@ -1,0 +1,19 @@
+{
+    "name": "debezium-connector",
+    "config": {
+        "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+        "tasks.max": "1",
+        "plugin.name": "wal2json",
+        "database.hostname": "postgres-db",
+        "database.port": "5432",
+        "database.user": "debezium",
+        "database.password": "debezium",
+        "database.dbname": "covid",
+        "database.server.name": "DEBEZIUM",
+        "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+        "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+        "key.converter.schemas.enable": "false",
+        "value.converter.schemas.enable": "false",
+        "snapshot.mode": "always"
+    }
+}

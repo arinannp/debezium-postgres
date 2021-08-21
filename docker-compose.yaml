@@ -1,0 +1,158 @@
+version: '3.8'
+
+services:
+    postgres-db:
+        container_name: postgres-db
+        image: debezium/postgres:12
+        environment:
+            - POSTGRES_USER=debezium
+            - POSTGRES_PASSWORD=debezium
+            - POSTGRES_DB=covid
+        logging:
+            options:
+                max-size: 10m
+                max-file: "3"
+        volumes:
+            - ./dbinit:/docker-entrypoint-initdb.d/
+        ports:
+            - "5432:5432"
+        healthcheck:
+            test: ["CMD", "pg_isready", "-U", "debezium", "-d", "covid"]
+            interval: 5s
+            retries: 5
+        networks: 
+            - streaming-debezium
+
+    postgres-dwh:
+        container_name: postgres-dwh
+        image: postgres:13.2
+        environment:
+            - POSTGRES_USER=warehouse
+            - POSTGRES_PASSWORD=warehouse
+            - POSTGRES_DB=warehouse
+        logging:
+            options:
+                max-size: 10m
+                max-file: "3"
+        ports:
+            - "5431:5432"
+        healthcheck:
+            test: ["CMD", "pg_isready", "-U", "warehouse"]
+            interval: 5s
+            retries: 5
+        networks: 
+            - streaming-debezium
+
+    postgres:
+        container_name: postgres-airflow
+        image: postgres:13.2
+        environment:
+            - POSTGRES_USER=airflow
+            - POSTGRES_PASSWORD=airflow
+            - POSTGRES_DB=airflow
+        logging:
+            options:
+                max-size: 10m
+                max-file: "3"
+        healthcheck:
+            test: ["CMD", "pg_isready", "-U", "airflow"]
+            interval: 5s
+            retries: 5
+        networks: 
+            - streaming-debezium
+
+    airflow:
+        container_name: airflow
+        image: puckel/docker-airflow:1.10.9
+        depends_on:
+            - postgres
+        environment:
+            - LOAD_EX=y
+            - EXECUTOR=Local
+        logging:
+            options:
+                max-size: 10m
+                max-file: "3"
+        volumes:
+            - ./dags:/usr/local/airflow/dags
+            - ./dags/airflow.cfg:/usr/local/airflow/airflow.cfg
+            - ./requirements.txt:/requirements.txt
+        ports:
+            - "8080:8080"
+        command: webserver
+        healthcheck:
+            test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
+            interval: 30s
+            timeout: 30s
+            retries: 3
+        networks: 
+            - streaming-debezium
+
+    zookeeper:
+        container_name: zookeeper
+        image: debezium/zookeeper:latest
+        ports:
+            - "2181:2181"
+            - "2888:2888"
+            - "3888:3888"
+        networks: 
+            - streaming-debezium
+
+    kafka:
+        container_name: kafka
+        image: debezium/kafka:latest
+        ports:
+            - "9092:9092"
+            - "29092:29092"
+        depends_on:
+            - zookeeper
+        environment:
+            - ZOOKEEPER_CONNECT=zookeeper:2181
+            - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+            - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+            - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+            - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+        networks: 
+            - streaming-debezium
+
+    connect:
+        container_name: connect
+        image: debezium/connect:latest
+        ports:
+            - "8083:8083"
+        environment:
+            - BOOTSTRAP_SERVERS=kafka:9092
+            - GROUP_ID=1
+            - CONFIG_STORAGE_TOPIC=my_connect_configs
+            - OFFSET_STORAGE_TOPIC=my_connect_offsets
+            - STATUS_STORAGE_TOPIC=my_connect_statuses
+        depends_on:
+            - postgres-db
+            - zookeeper
+            - kafka
+        networks: 
+            - streaming-debezium
+
+    spark:
+        image: bitnami/spark:3.1.2
+        container_name: spark
+        hostname: spark
+        user: root
+        environment:
+            - SPARK_MODE=master
+            - SPARK_RPC_AUTHENTICATION_ENABLED=no
+            - SPARK_RPC_ENCRYPTION_ENABLED=no
+            - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+            - SPARK_SSL_ENABLED=no
+        volumes:
+            - ./spark-code:/opt/bitnami/spark/project
+            - ./output:/opt/bitnami/spark/output
+            - ./connector/postgresql-9.4.1207.jar:/opt/bitnami/spark/connector/postgresql-9.4.1207.jar
+        ports:
+            - 4040:8080
+        networks: 
+            - streaming-debezium
+
+networks:
+    streaming-debezium:
+        name: streaming-debezium
