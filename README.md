@@ -133,3 +133,28 @@ docker exec -it spark spark-submit --master local[*] --packages org.apache.spark
 ```
 
 ## Test The Change Data Capture Debezium Tool
+1. Login to posgres database (username & password: debezium, database: covid).
+    ![](./images/postgres-login.png "Database Login")
+```
+docker exec -it postgres-db psql -U debezium debezium -d covid
+```
+
+2. Update covid_api table in column positive with id 1583107200000.
+```
+UPDATE covid_api SET positive=0 WHERE id=1583107200000;
+```
+The data changes in column positive is captured.
+    ![](./images/update-operation.png "Update Op") 
+
+3. Delete data in covid_api table with id 1583107200000.
+```
+DELETE FROM covid_api WHERE id=1583107200000;
+```
+The deleted data is captured.
+    ![](./images/delete-operation.png "Delete Op")
+
+
+## Stops and Removes Containers, Networks & Volumes
+Delete all containers that have been build earlier.
+        
+    $ docker-compose -f docker-compose.yaml down
