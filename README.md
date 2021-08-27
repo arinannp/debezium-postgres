@@ -56,7 +56,7 @@ Clone this repository by using command:
     $ git clone https://github.com/arinannp/debezium-postgres.git
 
 ### Build and start containers
-If we want to run containers, we can use following command:
+If we want to run containers, we can use this following command:
         
     $ docker-compose -f docker-compose.yaml up -d
 
@@ -74,7 +74,10 @@ Register the postgres database to debezium connector using curl command:
         
     $ curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" localhost:8083/connectors/ -d "@connector/debezium.json"
 
-Note: check registered connector in debezium using command `curl -H "Accept:application/json" localhost:8083/connectors/`
+Note: check registered connector in debezium using command 
+```
+curl -H "Accept:application/json" localhost:8083/connectors/
+```
 
 
 ### Access The Containers That Have Been Built
@@ -120,13 +123,13 @@ docker exec -it kafka /kafka/bin/kafka-topics.sh --bootstrap-server localhost:90
     ![](./images/kafka-topics.png "Kafka Topics")
 
 #### Spark
-1. Consume data from kafka topic `DEBEZIUM.public.covid_api` and store it to postgres as covid_api table.
+1. Consume data from kafka topic `DEBEZIUM.public.covid_api` and store it to postgres (username, password & database: warehouse) as covid_api table.
     ![](./images/covid-api-clean.png "Covid Api Example Table")
 ```
 docker exec -it spark spark-submit --master local[*] --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2 --driver-class-path /opt/bitnami/spark/connector/postgresql-9.4.1207.jar /opt/bitnami/spark/project/spark_structured_streaming_covid_api.py
 ```
 
-2. Consume data from kafka topic `DEBEZIUM.public.last_scratch` and store it to postgres as last_scratch table.
+2. Consume data from kafka topic `DEBEZIUM.public.last_scratch` and store it to postgres (username, password & database: warehouse) as last_scratch table.
     ![](./images/last-scratch-clean.png "Last Scratch Example Table")
 ```
 docker exec -it spark spark-submit --master local[*] --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2 --driver-class-path /opt/bitnami/spark/connector/postgresql-9.4.1207.jar /opt/bitnami/spark/project/spark_structured_streaming_last_scratch.py
@@ -143,14 +146,14 @@ docker exec -it postgres-db psql -U debezium debezium -d covid
 ```
 UPDATE covid_api SET positive=0 WHERE id=1583107200000;
 ```
-The data changes in column positive is captured.
+The updated data is captured in postgres (username, password & database: warehouse).
     ![](./images/update-operation.png "Update Op") 
 
 3. Delete data in covid_api table with id 1583107200000.
 ```
 DELETE FROM covid_api WHERE id=1583107200000;
 ```
-The deleted data is captured.
+The deleted data is captured in postgres (username, password & database: warehouse).
     ![](./images/delete-operation.png "Delete Op")
 
 
