@@ -146,7 +146,7 @@ docker exec -it postgres-db psql -U debezium debezium -d covid
 ```
 UPDATE covid_api SET positive=0 WHERE id=1583107200000;
 ```
-- The kafka json message should be:
+   - The kafka json message should be:
 ```
 {   
     "before": 
@@ -197,14 +197,14 @@ UPDATE covid_api SET positive=0 WHERE id=1583107200000;
     "transaction":null
 }
 ```
-- The updated data is captured in postgres (username, password & database: warehouse).
+   - The updated data is captured in postgres (username, password & database: warehouse).
     ![](./images/update-operation.png "Preview Update Op") 
 
 3. Delete data in covid_api table with id 1583107200000.
 ```
 DELETE FROM covid_api WHERE id=1583107200000;
 ```
-- The kafka json message should be:
+   - The kafka json message should be:
 ```
 {
     "before":
@@ -242,16 +242,16 @@ DELETE FROM covid_api WHERE id=1583107200000;
     "transaction":null
 }
 ```
-- The deleted data is captured in postgres (username, password & database: warehouse).
+   - The deleted data is captured in postgres (username, password & database: warehouse).
     ![](./images/delete-operation.png "Preview Delete Op")
 
 
-## Stops and Removes Containers, Networks & Volumes
+## Stops and Removes Containers, Network & Volumes
 Optionally if you want to delete all containers that have been built earlier, you can run:
         
     $ docker-compose -f docker-compose.yaml down
 
 
-## Reference
+## References
    * https://debezium.io/
    * https://github.com/orgs/debezium/repositories
